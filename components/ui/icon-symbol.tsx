@@ -28,6 +28,8 @@ const MAPPING = {
   'bell.fill': 'notifications',
   'moon.fill': 'nightlight-round',
   'gear': 'settings',
+  'gamecontroller.fill': 'games',
+  'person.2.fill': 'people',
 } as const;
 
 export type IconSymbolName = keyof typeof MAPPING;
