@@ -1,4 +1,5 @@
 import { StyleSheet, View, ScrollView, Pressable, Platform, useWindowDimensions } from 'react-native';
+import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 
 import { ThemedText } from '@/components/themed-text';
@@ -80,6 +81,10 @@ export default function GamesScreen() {
                 onPress={() => {
                    if (Platform.OS !== 'web') {
                      Haptics.selectionAsync();
+                   }
+                   // Navigate to specific game screen
+                   if (game.id === 'kinship') {
+                     router.push('/games/kinship');
                    }
                 }}
               >
