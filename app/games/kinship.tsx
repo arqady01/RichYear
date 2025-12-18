@@ -1,349 +1,347 @@
-import { useState, useCallback } from 'react';
-import {
-  StyleSheet,
-  View,
-  ScrollView,
-  Pressable,
-  Platform,
-  SafeAreaView,
-} from 'react-native';
-import { Stack } from 'expo-router';
 import * as Haptics from 'expo-haptics';
+import { Stack } from 'expo-router';
+import { useCallback, useState } from 'react';
+import {
+  Dimensions,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import Animated, {
   useAnimatedStyle,
-  withSpring,
-  withSequence,
   useSharedValue,
+  withSequence,
+  withSpring
 } from 'react-native-reanimated';
 
-import { ThemedText } from '@/components/themed-text';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { useThemeColor } from '@/hooks/use-theme-color';
 import {
-  RELATION_CATEGORIES,
   calculateKinship,
-  getRelationChainText,
   getRelationChainShort,
+  getRelationChainText,
 } from '@/constants/kinship-data';
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const BUTTON_MARGIN = 12;
+const BUTTONS_PER_ROW = 4;
+const BUTTON_SIZE = Math.floor((SCREEN_WIDTH - 40 - BUTTON_MARGIN * (BUTTONS_PER_ROW - 1)) / BUTTONS_PER_ROW);
+
+// 计算器配色 - iPhone风格
+const COLORS = {
+  background: '#000000',
+  displayText: '#FFFFFF',
+  operatorButton: '#FF9500',
+  functionButton: '#A5A5A5',
+  functionText: '#000000',
+  numberButton: '#333333',
+  numberText: '#FFFFFF',
+  clearButton: '#FF3B30',
+  successGreen: '#34C759',
+  chainText: '#8E8E93',
+};
+
+// 按钮类型
+type ButtonType = 'relation' | 'operator' | 'function' | 'clear';
+
+interface CalcButton {
+  id: string;
+  label: string;
+  type: ButtonType;
+}
+
+// 计算器风格按钮布局
+const CALC_BUTTONS: CalcButton[][] = [
+  [
+    { id: 'clear', label: 'AC', type: 'clear' },
+    { id: 'undo', label: '⌫', type: 'function' },
+    { id: 'h', label: '夫', type: 'function' },
+    { id: 'w', label: '妻', type: 'operator' },
+  ],
+  [
+    { id: 'f', label: '父', type: 'relation' },
+    { id: 'm', label: '母', type: 'relation' },
+    { id: 'ob', label: '兄', type: 'relation' },
+    { id: 'os', label: '姐', type: 'operator' },
+  ],
+  [
+    { id: 's', label: '子', type: 'relation' },
+    { id: 'd', label: '女', type: 'relation' },
+    { id: 'lb', label: '弟', type: 'relation' },
+    { id: 'ls', label: '妹', type: 'operator' },
+  ],
+];
+
+// 按钮组件
+function CalcButtonItem({ 
+  button, 
+  onPress 
+}: { 
+  button: CalcButton; 
+  onPress: () => void;
+}) {
+  const getBackgroundColor = () => {
+    switch (button.type) {
+      case 'operator': return COLORS.operatorButton;
+      case 'function': return COLORS.functionButton;
+      case 'clear': return COLORS.clearButton;
+      default: return COLORS.numberButton;
+    }
+  };
+
+  const getTextColor = () => {
+    return button.type === 'function' ? COLORS.functionText : COLORS.numberText;
+  };
+
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.button,
+        { backgroundColor: getBackgroundColor() },
+        pressed && styles.buttonPressed,
+      ]}
+    >
+      <Text style={[styles.buttonText, { color: getTextColor() }]}>
+        {button.label}
+      </Text>
+    </Pressable>
+  );
+}
 
 export default function KinshipCalculatorScreen() {
   const [relationChain, setRelationChain] = useState<string[]>([]);
-  
-  const backgroundColor = useThemeColor({}, 'background');
-  const cardBackgroundColor = useThemeColor({}, 'cardBackground');
-  const tintColor = useThemeColor({}, 'tint');
-  const textColor = useThemeColor({}, 'text');
-  const secondaryTextColor = useThemeColor({}, 'secondaryText');
-  const separatorColor = useThemeColor({}, 'separator');
-  const redColor = useThemeColor({}, 'red');
-  
-  // Animation for result
+  const [streak, setStreak] = useState(0);
+
   const resultScale = useSharedValue(1);
-  
-  const animatedResultStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: resultScale.value }],
-  }));
+
+  const triggerHaptic = useCallback((type: 'light' | 'medium' | 'success' | 'error') => {
+    if (Platform.OS === 'web') return;
+    switch (type) {
+      case 'light':
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        break;
+      case 'medium':
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        break;
+      case 'success':
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        break;
+      case 'error':
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        break;
+    }
+  }, []);
 
   const handleAddRelation = useCallback((relationId: string) => {
-    if (Platform.OS !== 'web') {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    }
+    triggerHaptic('light');
     
-    setRelationChain((prev) => [...prev, relationId]);
-    
-    // Animate result
-    resultScale.value = withSequence(
-      withSpring(1.1, { damping: 10 }),
-      withSpring(1, { damping: 15 })
-    );
-  }, [resultScale]);
+    setRelationChain((prev) => {
+      const newChain = [...prev, relationId];
+      const newResult = calculateKinship(newChain);
+      if (newResult !== '关系较复杂，请简化' && newResult !== '请选择关系') {
+        setStreak((s) => s + 1);
+        triggerHaptic('success');
+      }
+      return newChain;
+    });
 
-  const handleRemoveLast = useCallback(() => {
-    if (Platform.OS !== 'web') {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    }
+    resultScale.value = withSequence(
+      withSpring(1.1, { damping: 8 }),
+      withSpring(1, { damping: 12 })
+    );
+  }, [triggerHaptic, resultScale]);
+
+  const handleUndo = useCallback(() => {
+    if (relationChain.length === 0) return;
+    triggerHaptic('medium');
     setRelationChain((prev) => prev.slice(0, -1));
-  }, []);
+  }, [relationChain.length, triggerHaptic]);
 
   const handleClear = useCallback(() => {
-    if (Platform.OS !== 'web') {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-    }
+    triggerHaptic('error');
     setRelationChain([]);
-  }, []);
+    setStreak(0);
+  }, [triggerHaptic]);
+
+  const handleButtonPress = useCallback((button: CalcButton) => {
+    if (button.id === 'clear') {
+      handleClear();
+    } else if (button.id === 'undo') {
+      handleUndo();
+    } else {
+      handleAddRelation(button.id);
+    }
+  }, [handleClear, handleUndo, handleAddRelation]);
 
   const result = calculateKinship(relationChain);
   const chainText = getRelationChainText(relationChain);
   const chainShort = getRelationChainShort(relationChain);
   const hasRelations = relationChain.length > 0;
+  const isValidResult = result !== '关系较复杂，请简化' && result !== '请选择关系';
+
+  const animatedResultStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: resultScale.value }],
+  }));
+
+  const getResultColor = () => {
+    if (!hasRelations) return COLORS.displayText;
+    if (isValidResult) return COLORS.successGreen;
+    return COLORS.clearButton;
+  };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor }]}>
+    <View style={styles.container}>
       <Stack.Screen
         options={{
-          title: '亲戚关系计算器',
-          headerStyle: { backgroundColor },
-          headerTintColor: textColor,
+          title: '',
+          headerStyle: { backgroundColor: COLORS.background },
+          headerTintColor: COLORS.displayText,
           headerBackTitle: '返回',
+          headerShadowVisible: false,
         }}
       />
-      
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Result Card */}
-        <View style={[styles.resultCard, { backgroundColor: cardBackgroundColor }]}>
-          <ThemedText style={[styles.resultLabel, { color: secondaryTextColor }]}>
-            计算结果
-          </ThemedText>
-          
-          <Animated.View style={animatedResultStyle}>
-            <ThemedText
-              style={[
-                styles.resultText,
-                { color: hasRelations ? redColor : secondaryTextColor },
-              ]}
-            >
-              {result}
-            </ThemedText>
-          </Animated.View>
-          
-          {hasRelations && chainShort && (
-            <View style={[styles.chainBadge, { backgroundColor: `${tintColor}15` }]}>
-              <ThemedText style={[styles.chainBadgeText, { color: tintColor }]}>
-                {chainShort}
-              </ThemedText>
-            </View>
-          )}
-        </View>
 
-        {/* Relation Chain Display */}
-        <View style={[styles.chainCard, { backgroundColor: cardBackgroundColor }]}>
-          <View style={styles.chainHeader}>
-            <ThemedText style={[styles.chainLabel, { color: secondaryTextColor }]}>
-              关系链
-            </ThemedText>
-            {hasRelations && (
-              <Pressable onPress={handleRemoveLast} hitSlop={8}>
-                <ThemedText style={[styles.undoText, { color: tintColor }]}>
-                  撤销
-                </ThemedText>
-              </Pressable>
-            )}
+      {/* 显示区域 */}
+      <View style={styles.displayContainer}>
+        {/* 连击计数 */}
+        {streak > 0 && (
+          <View style={styles.streakBadge}>
+            <Text style={styles.streakText}>
+              {streak >= 10 ? '🏆' : streak >= 5 ? '⭐' : '🔥'} {streak} 连击
+            </Text>
           </View>
-          
-          <ThemedText
-            style={[
-              styles.chainText,
-              !hasRelations && { color: secondaryTextColor },
-            ]}
-            numberOfLines={3}
-          >
+        )}
+
+        {/* 关系链显示 */}
+        <Text style={styles.chainLabel}>
+          {hasRelations ? `我 → ${chainShort}` : '亲戚关系计算器'}
+        </Text>
+
+        {/* 结果 */}
+        <Animated.View style={[styles.resultContainer, animatedResultStyle]}>
+          <Text style={[styles.resultText, { color: getResultColor() }]}>
+            {result}
+          </Text>
+        </Animated.View>
+
+        {/* 完整描述 */}
+        {hasRelations && (
+          <Text style={styles.fullChainText} numberOfLines={2}>
             {chainText}
-          </ThemedText>
-        </View>
+          </Text>
+        )}
 
-        {/* Relation Buttons */}
-        <View style={styles.buttonsSection}>
-          {RELATION_CATEGORIES.map((category, catIndex) => (
-            <View key={category.title} style={styles.categorySection}>
-              <ThemedText style={[styles.categoryTitle, { color: secondaryTextColor }]}>
-                {category.title}
-              </ThemedText>
-              
-              <View style={styles.buttonRow}>
-                {category.relations.map((relation) => (
-                  <Pressable
-                    key={relation.id}
-                    style={({ pressed }) => [
-                      styles.relationButton,
-                      {
-                        backgroundColor: cardBackgroundColor,
-                        borderColor: separatorColor,
-                        opacity: pressed ? 0.7 : 1,
-                        transform: [{ scale: pressed ? 0.95 : 1 }],
-                      },
-                    ]}
-                    onPress={() => handleAddRelation(relation.id)}
-                  >
-                    <ThemedText style={styles.relationButtonText}>
-                      {relation.label}
-                    </ThemedText>
-                  </Pressable>
-                ))}
-              </View>
-              
-              {catIndex < RELATION_CATEGORIES.length - 1 && (
-                <View style={[styles.categorySeparator, { backgroundColor: separatorColor }]} />
-              )}
-            </View>
-          ))}
-        </View>
+        {/* 成功提示 */}
+        {isValidResult && hasRelations && (
+          <Text style={styles.successHint}>✓ 找到了！</Text>
+        )}
+      </View>
 
-        {/* Clear Button */}
-        <Pressable
-          style={({ pressed }) => [
-            styles.clearButton,
-            {
-              backgroundColor: hasRelations ? redColor : separatorColor,
-              opacity: pressed ? 0.8 : 1,
-            },
-          ]}
-          onPress={handleClear}
-          disabled={!hasRelations}
-        >
-          <IconSymbol name="arrow.counterclockwise" size={18} color="white" />
-          <ThemedText style={styles.clearButtonText}>清空重来</ThemedText>
-        </Pressable>
+      {/* 按钮区域 */}
+      <View style={styles.buttonsContainer}>
+        {CALC_BUTTONS.map((row, rowIndex) => (
+          <View key={rowIndex} style={styles.buttonRow}>
+            {row.map((button) => (
+              <CalcButtonItem
+                key={button.id}
+                button={button}
+                onPress={() => handleButtonPress(button)}
+              />
+            ))}
+          </View>
+        ))}
+      </View>
 
-        {/* Instructions */}
-        <View style={styles.instructions}>
-          <ThemedText style={[styles.instructionTitle, { color: secondaryTextColor }]}>
-            使用说明
-          </ThemedText>
-          <ThemedText style={[styles.instructionText, { color: secondaryTextColor }]}>
-            {'1. 从"我"的角度出发，依次选择关系\n'}
-            {'2. 例如：想知道"爸爸的妈妈"怎么称呼\n'}
-            {'3. 依次点击"爸爸"→"妈妈"，得到"奶奶"\n'}
-            {'4. 点击"撤销"可删除最后一个关系'}
-          </ThemedText>
-        </View>
-      </ScrollView>
-    </SafeAreaView>
+      {/* 底部提示 */}
+      <View style={styles.footer}>
+        <Text style={styles.footerText}>依次点击关系，计算称呼</Text>
+      </View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: COLORS.background,
   },
-  scrollView: {
+  displayContainer: {
     flex: 1,
+    justifyContent: 'flex-end',
+    paddingHorizontal: 20,
+    paddingBottom: 20,
   },
-  scrollContent: {
-    padding: 16,
-    paddingBottom: 40,
-  },
-  resultCard: {
-    borderRadius: 16,
-    padding: 24,
-    alignItems: 'center',
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  resultLabel: {
-    fontSize: 14,
-    marginBottom: 8,
-  },
-  resultText: {
-    fontSize: 48,
-    fontWeight: '700',
-    textAlign: 'center',
-  },
-  chainBadge: {
-    marginTop: 12,
+  streakBadge: {
+    position: 'absolute',
+    top: 10,
+    right: 20,
+    backgroundColor: 'rgba(255, 149, 0, 0.2)',
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 20,
-  },
-  chainBadgeText: {
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  chainCard: {
     borderRadius: 16,
-    padding: 16,
-    marginBottom: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
   },
-  chainHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
+  streakText: {
+    color: COLORS.operatorButton,
+    fontSize: 16,
+    fontWeight: '600',
   },
   chainLabel: {
-    fontSize: 14,
-  },
-  undoText: {
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  chainText: {
-    fontSize: 17,
-    lineHeight: 24,
-  },
-  buttonsSection: {
-    marginBottom: 24,
-  },
-  categorySection: {
+    color: COLORS.chainText,
+    fontSize: 18,
     marginBottom: 8,
   },
-  categoryTitle: {
-    fontSize: 13,
+  resultContainer: {
+    alignItems: 'flex-end',
+    minHeight: 80,
+    justifyContent: 'center',
+  },
+  resultText: {
+    fontSize: 64,
+    fontWeight: '300',
+  },
+  fullChainText: {
+    color: COLORS.chainText,
+    fontSize: 14,
+    textAlign: 'right',
+    marginTop: 8,
+  },
+  successHint: {
+    color: COLORS.successGreen,
+    fontSize: 14,
     fontWeight: '600',
-    marginBottom: 12,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    textAlign: 'right',
+    marginTop: 4,
+  },
+  buttonsContainer: {
+    paddingHorizontal: 16,
+    paddingBottom: 20,
   },
   buttonRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
+    justifyContent: 'space-between',
+    marginBottom: BUTTON_MARGIN,
   },
-  relationButton: {
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    borderRadius: 12,
-    borderWidth: 1,
-    minWidth: 80,
+  button: {
+    width: BUTTON_SIZE,
+    height: BUTTON_SIZE,
+    borderRadius: BUTTON_SIZE / 2,
+    justifyContent: 'center',
     alignItems: 'center',
   },
-  relationButtonText: {
-    fontSize: 17,
+  buttonPressed: {
+    opacity: 0.6,
+  },
+  buttonText: {
+    fontSize: 28,
     fontWeight: '500',
   },
-  categorySeparator: {
-    height: 1,
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  clearButton: {
-    flexDirection: 'row',
+  footer: {
+    paddingBottom: 40,
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 16,
-    borderRadius: 12,
-    gap: 8,
-    marginBottom: 24,
   },
-  clearButtonText: {
-    color: 'white',
-    fontSize: 17,
-    fontWeight: '600',
-  },
-  instructions: {
-    paddingTop: 16,
-  },
-  instructionTitle: {
+  footerText: {
+    color: COLORS.chainText,
     fontSize: 13,
-    fontWeight: '600',
-    marginBottom: 8,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  instructionText: {
-    fontSize: 14,
-    lineHeight: 22,
   },
 });
