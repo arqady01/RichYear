@@ -27,6 +27,7 @@ const MAPPING = {
   'heart.fill': 'favorite',
   'bell.fill': 'notifications',
   'moon.fill': 'nightlight-round',
+  'gear': 'settings',
 } as const;
 
 export type IconSymbolName = keyof typeof MAPPING;
