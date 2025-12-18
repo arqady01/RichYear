@@ -30,6 +30,9 @@ const MAPPING = {
   'gear': 'settings',
   'gamecontroller.fill': 'games',
   'person.2.fill': 'people',
+  'arrow.counterclockwise': 'refresh',
+  'trash.fill': 'delete',
+  'xmark.circle.fill': 'cancel',
 } as const;
 
 export type IconSymbolName = keyof typeof MAPPING;
