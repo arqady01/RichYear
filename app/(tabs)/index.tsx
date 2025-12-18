@@ -1,80 +1,136 @@
 import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import { StyleSheet, View, Pressable, Vibration, Platform } from 'react-native';
+import Animated, { useAnimatedStyle, withSpring, useSharedValue, withSequence, withTiming } from 'react-native-reanimated';
+import * as Haptics from 'expo-haptics';
 
 import { HelloWave } from '@/components/hello-wave';
 import ParallaxScrollView from '@/components/parallax-scroll-view';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+import { useHolidayTheme } from '@/context/HolidayThemeContext';
+import { HolidayParticles } from '@/components/HolidayParticles';
+import { IconSymbol } from '@/components/ui/icon-symbol';
+import { useEffect, useState } from 'react';
+
+const Countdown = ({ targetDate }: { targetDate: Date }) => {
+  const [timeLeft, setTimeLeft] = useState(calculateTimeLeft());
+
+  function calculateTimeLeft() {
+    const difference = +targetDate - +new Date();
+    let timeLeft = {};
+
+    if (difference > 0) {
+      timeLeft = {
+        days: Math.floor(difference / (1000 * 60 * 60 * 24)),
+        hours: Math.floor((difference / (1000 * 60 * 60)) % 24),
+        minutes: Math.floor((difference / 1000 / 60) % 60),
+        seconds: Math.floor((difference / 1000) % 60),
+      };
+    }
+    return timeLeft as { days: number; hours: number; minutes: number; seconds: number };
+  }
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTimeLeft(calculateTimeLeft());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [targetDate]);
+
+  return (
+    <View style={styles.countdownContainer}>
+      {Object.keys(timeLeft).length > 0 ? (
+        <View style={styles.timerRow}>
+           <TimeBox value={timeLeft.days} label="Days" />
+           <TimeBox value={timeLeft.hours} label="Hrs" />
+           <TimeBox value={timeLeft.minutes} label="Mins" />
+           <TimeBox value={timeLeft.seconds} label="Secs" />
+        </View>
+      ) : (
+        <ThemedText type="title">It's Here!</ThemedText>
+      )}
+    </View>
+  );
+};
+
+const TimeBox = ({ value, label }: { value: number; label: string }) => (
+  <View style={styles.timeBox}>
+    <ThemedText type="title" style={{ fontSize: 24 }}>{value.toString().padStart(2, '0')}</ThemedText>
+    <ThemedText style={{ fontSize: 10 }}>{label}</ThemedText>
+  </View>
+);
 
 export default function HomeScreen() {
-  return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+  const { holiday, toggleHoliday, themeColors } = useHolidayTheme();
+  
+  // Target dates (just mock for next year if passed)
+  const currentYear = new Date().getFullYear();
+  const targetDate = holiday === 'christmas' 
+    ? new Date(currentYear, 11, 25) 
+    : new Date(currentYear + 1, 0, 29); // Approximate CNY
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+    if (new Date() > targetDate) {
+        // Adjust for next year logic if needed, but for demo we assume upcoming
+    }
+
+  const scale = useSharedValue(1);
+
+  const handlePress = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    scale.value = withSequence(withSpring(1.2), withSpring(1));
+    toggleHoliday();
+  };
+  
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
+  return (
+    <View style={{ flex: 1, backgroundColor: themeColors.background }}>
+      <HolidayParticles />
+      <ParallaxScrollView
+        headerBackgroundColor={{ light: themeColors.primary, dark: themeColors.primary }}
+        headerImage={
+          <IconSymbol
+            size={200}
+            name={holiday === 'christmas' ? 'snowflake' : 'flame.fill'}
+            color="white"
+            style={styles.headerIcon}
+          />
+        }>
+        
+        <ThemedView style={[styles.titleContainer, { backgroundColor: 'transparent' }]}>
+          <ThemedText type="title" style={{ color: themeColors.text }}>
+            {holiday === 'christmas' ? 'Merry Christmas!' : 'Happy New Year!'}
+          </ThemedText>
+          <HelloWave />
+        </ThemedView>
+
+        <View style={styles.card}>
+           <ThemedText type="subtitle" style={{textAlign: 'center', marginBottom: 10}}>Time Remaining</ThemedText>
+           <Countdown targetDate={targetDate} />
+        </View>
+
+        <View style={styles.card}>
+          <ThemedText type="subtitle">Daily Surprise</ThemedText>
+          <View style={{ padding: 20, alignItems: 'center' }}>
+             <IconSymbol name="gift.fill" size={60} color={themeColors.accent} />
+             <ThemedText style={{ marginTop: 10, textAlign: 'center' }}>
+               Tap to reveal your daily blessing!
+             </ThemedText>
+          </View>
+        </View>
+
+        <Pressable onPress={handlePress} style={styles.switchButton}>
+            <Animated.View style={[styles.switchContent, animatedStyle, { backgroundColor: themeColors.secondary }]}>
+                <ThemedText style={{ color: 'white', fontWeight: 'bold' }}>
+                    Switch to {holiday === 'christmas' ? 'Lunar New Year' : 'Christmas'}
+                </ThemedText>
+            </Animated.View>
+        </Pressable>
+
+      </ParallaxScrollView>
+    </View>
   );
 }
 
@@ -83,16 +139,48 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+    marginBottom: 20,
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
-  },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
+  headerIcon: {
+    bottom: -30,
+    left: -20,
     position: 'absolute',
+    opacity: 0.8
   },
+  countdownContainer: {
+    alignItems: 'center',
+  },
+  timerRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  timeBox: {
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    padding: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+    minWidth: 60,
+  },
+  card: {
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+  },
+  switchButton: {
+    marginTop: 20,
+    alignItems: 'center',
+  },
+  switchContent: {
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 25,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  }
 });

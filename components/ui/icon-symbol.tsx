@@ -5,7 +5,9 @@ import { SymbolWeight, SymbolViewProps } from 'expo-symbols';
 import { ComponentProps } from 'react';
 import { OpaqueColorValue, type StyleProp, type TextStyle } from 'react-native';
 
-type IconMapping = Record<SymbolViewProps['name'], ComponentProps<typeof MaterialIcons>['name']>;
+// Add the missing SF Symbol names to the type definition roughly by extending string or just relying on the keys of MAPPING
+// But here the type is strictly derived from MAPPING keys.
+
 type IconSymbolName = keyof typeof MAPPING;
 
 /**
@@ -14,11 +16,27 @@ type IconSymbolName = keyof typeof MAPPING;
  * - see SF Symbols in the [SF Symbols](https://developer.apple.com/sf-symbols/) app.
  */
 const MAPPING = {
+  // Existing
   'house.fill': 'home',
   'paperplane.fill': 'send',
   'chevron.left.forwardslash.chevron.right': 'code',
   'chevron.right': 'chevron-right',
-} as IconMapping;
+  
+  // Added for Holiday App
+  'envelope.fill': 'email',
+  'paintpalette.fill': 'palette',
+  'snowflake': 'ac-unit',
+  'flame.fill': 'local-fire-department',
+  'gift.fill': 'card-giftcard',
+  'star.fill': 'star',
+  'sun.max.fill': 'wb-sunny',
+  'heart.fill': 'favorite',
+  'bell.fill': 'notifications',
+  'moon.fill': 'nightlight-round',
+} as const; // using const assertion to help with type inference if I change the type definition logic
+
+type IconMapping = typeof MAPPING;
+export type IconSymbolName = keyof typeof MAPPING;
 
 /**
  * An icon component that uses native SF Symbols on iOS, and Material Icons on Android and web.
