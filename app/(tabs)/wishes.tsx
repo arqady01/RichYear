@@ -1,25 +1,25 @@
-import { StyleSheet, View, Dimensions, FlatList, Pressable } from 'react-native';
-import Animated, { useSharedValue, useAnimatedStyle, withSpring, useAnimatedScrollHandler, interpolate, Extrapolation } from 'react-native-reanimated';
+import { StyleSheet, View, Dimensions, Pressable } from 'react-native';
+import Animated, { useSharedValue, useAnimatedStyle, useAnimatedScrollHandler, interpolate, Extrapolation, type SharedValue } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 
 import { ThemedText } from '@/components/themed-text';
-import { useHolidayTheme } from '@/context/HolidayThemeContext';
 import { IconSymbol, IconSymbolName } from '@/components/ui/icon-symbol';
 import { HolidayParticles } from '@/components/HolidayParticles';
+import { useThemeColor } from '@/hooks/use-theme-color';
 
 const { width } = Dimensions.get('window');
-const CARD_WIDTH = width * 0.8;
+const CARD_WIDTH = width * 0.85;
 const SPACER_WIDTH = (width - CARD_WIDTH) / 2;
 
-const DATA: { id: string; title: string; icon: IconSymbolName; message: string }[] = [
-  { id: '1', title: 'Joy & Peace', icon: 'star.fill', message: 'Wishing you a season filled with warmth and comfort.' },
-  { id: '2', title: 'Prosperity', icon: 'sun.max.fill', message: 'May the new year bring you wealth and success.' },
-  { id: '3', title: 'Health', icon: 'heart.fill', message: 'Good health and happiness to you and your family.' },
-  { id: '4', title: 'Love', icon: 'gift.fill', message: 'Sending you all my love this holiday season.' },
+const DATA: { id: string; title: string; icon: IconSymbolName; message: string; color: string }[] = [
+  { id: '1', title: 'Joy & Peace', icon: 'star.fill', message: 'Wishing you a season filled with warmth and comfort.', color: '#FFD700' },
+  { id: '2', title: 'Prosperity', icon: 'sun.max.fill', message: 'May the new year bring you wealth and success.', color: '#FF9500' },
+  { id: '3', title: 'Health', icon: 'heart.fill', message: 'Good health and happiness to you and your family.', color: '#FF3B30' },
+  { id: '4', title: 'Love', icon: 'gift.fill', message: 'Sending you all my love this holiday season.', color: '#FF2D55' },
 ];
 
-const Card = ({ item, index, scrollX }: { item: typeof DATA[0], index: number, scrollX: Animated.SharedValue<number> }) => {
-  const { themeColors } = useHolidayTheme();
+const Card = ({ item, index, scrollX }: { item: typeof DATA[0], index: number, scrollX: SharedValue<number> }) => {
+  const backgroundColor = useThemeColor({}, 'cardBackground');
 
   const animatedStyle = useAnimatedStyle(() => {
     const inputRange = [
@@ -35,35 +35,30 @@ const Card = ({ item, index, scrollX }: { item: typeof DATA[0], index: number, s
       Extrapolation.CLAMP
     );
 
-    const opacity = interpolate(
-      scrollX.value,
-      inputRange,
-      [0.6, 1, 0.6],
-      Extrapolation.CLAMP
-    );
-
     return {
       transform: [{ scale }],
-      opacity,
     };
   });
 
   const handlePress = () => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    alert(`Sent wish: ${item.title}!`);
+    // In a real app, this would share the wish
   };
 
   return (
     <Animated.View style={[styles.cardContainer, animatedStyle]}>
       <Pressable 
         onPress={handlePress}
-        style={[styles.card, { backgroundColor: themeColors.primary }]}
+        style={[styles.card, { backgroundColor }]}
       >
-        <IconSymbol name={item.icon} size={80} color="white" />
-        <ThemedText type="title" style={{ color: 'white', marginTop: 20 }}>{item.title}</ThemedText>
-        <ThemedText style={{ color: 'white', textAlign: 'center', marginTop: 10 }}>{item.message}</ThemedText>
-        <View style={styles.button}>
-            <ThemedText style={{color: themeColors.primary, fontWeight: 'bold'}}>Tap to Send</ThemedText>
+        <View style={[styles.iconContainer, { backgroundColor: item.color }]}>
+            <IconSymbol name={item.icon} size={60} color="white" />
+        </View>
+        <ThemedText type="title" style={{ marginTop: 24, textAlign: 'center' }}>{item.title}</ThemedText>
+        <ThemedText style={{ textAlign: 'center', marginTop: 12, color: '#8E8E93' }}>{item.message}</ThemedText>
+        
+        <View style={styles.actionRow}>
+            <ThemedText style={{ color: '#007AFF', fontWeight: '600', fontSize: 17 }}>Tap to Send</ThemedText>
         </View>
       </Pressable>
     </Animated.View>
@@ -71,19 +66,18 @@ const Card = ({ item, index, scrollX }: { item: typeof DATA[0], index: number, s
 };
 
 export default function WishesScreen() {
-  const { themeColors } = useHolidayTheme();
   const scrollX = useSharedValue(0);
+  const backgroundColor = useThemeColor({}, 'background');
 
   const scrollHandler = useAnimatedScrollHandler((event) => {
     scrollX.value = event.contentOffset.x;
   });
 
   return (
-    <View style={{ flex: 1, backgroundColor: themeColors.background }}>
+    <View style={{ flex: 1, backgroundColor }}>
       <HolidayParticles />
       <View style={styles.header}>
-        <ThemedText type="title" style={{ color: themeColors.text }}>Send a Wish</ThemedText>
-        <ThemedText style={{ color: themeColors.text }}>Swipe and tap to share</ThemedText>
+        <ThemedText type="title">Send a Wish</ThemedText>
       </View>
       
       <Animated.FlatList
@@ -93,7 +87,7 @@ export default function WishesScreen() {
         showsHorizontalScrollIndicator={false}
         snapToInterval={CARD_WIDTH}
         decelerationRate="fast"
-        contentContainerStyle={{ paddingHorizontal: SPACER_WIDTH }}
+        contentContainerStyle={{ paddingHorizontal: SPACER_WIDTH, paddingBottom: 20 }}
         onScroll={scrollHandler}
         scrollEventThrottle={16}
         renderItem={({ item, index }) => <Card item={item} index={index} scrollX={scrollX} />}
@@ -104,37 +98,41 @@ export default function WishesScreen() {
 
 const styles = StyleSheet.create({
   header: {
-    paddingTop: 60,
+    paddingTop: 80,
     paddingBottom: 20,
     alignItems: 'center',
   },
   cardContainer: {
     width: CARD_WIDTH,
-    height: 500, // Fixed height for simplicity
     justifyContent: 'center',
     alignItems: 'center',
+    paddingVertical: 20,
   },
   card: {
-    width: '90%',
-    height: '80%',
-    borderRadius: 20,
+    width: '100%',
+    aspectRatio: 0.8,
+    borderRadius: 24,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    padding: 32,
     shadowColor: "#000",
     shadowOffset: {
       width: 0,
-      height: 4,
+      height: 10,
     },
-    shadowOpacity: 0.30,
-    shadowRadius: 4.65,
-    elevation: 8,
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    elevation: 5,
   },
-  button: {
-      marginTop: 30,
-      backgroundColor: 'white',
-      paddingHorizontal: 20,
-      paddingVertical: 10,
-      borderRadius: 20,
+  iconContainer: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  actionRow: {
+      marginTop: 'auto',
   }
 });

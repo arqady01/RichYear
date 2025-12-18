@@ -1,14 +1,8 @@
 // Fallback for using MaterialIcons on Android and web.
 
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { SymbolWeight, SymbolViewProps } from 'expo-symbols';
-import { ComponentProps } from 'react';
+import { SymbolWeight } from 'expo-symbols';
 import { OpaqueColorValue, type StyleProp, type TextStyle } from 'react-native';
-
-// Add the missing SF Symbol names to the type definition roughly by extending string or just relying on the keys of MAPPING
-// But here the type is strictly derived from MAPPING keys.
-
-type IconSymbolName = keyof typeof MAPPING;
 
 /**
  * Add your SF Symbols to Material Icons mappings here.
@@ -33,9 +27,8 @@ const MAPPING = {
   'heart.fill': 'favorite',
   'bell.fill': 'notifications',
   'moon.fill': 'nightlight-round',
-} as const; // using const assertion to help with type inference if I change the type definition logic
+} as const;
 
-type IconMapping = typeof MAPPING;
 export type IconSymbolName = keyof typeof MAPPING;
 
 /**

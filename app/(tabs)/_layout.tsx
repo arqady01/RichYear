@@ -1,33 +1,40 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
+import { Platform } from 'react-native';
 
 import { HapticTab } from '@/components/haptic-tab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { useHolidayTheme } from '@/context/HolidayThemeContext';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
-  const { themeColors } = useHolidayTheme();
+  const colors = Colors[colorScheme ?? 'light'];
 
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: themeColors.primary,
-        tabBarInactiveTintColor: 'gray',
+        tabBarActiveTintColor: colors.tint,
+        tabBarInactiveTintColor: colors.grey,
         headerShown: false,
         tabBarButton: HapticTab,
-        tabBarStyle: {
-            backgroundColor: themeColors.background === '#8B0000' ? '#500000' : '#ffffff', // dynamic tab bar color
+        tabBarStyle: Platform.select({
+          ios: {
+            position: 'absolute',
+            backgroundColor: colorScheme === 'dark' ? 'rgba(28, 28, 30, 0.8)' : 'rgba(255, 255, 255, 0.8)', // Translucent
+            borderTopWidth: 0,
+          },
+          default: {
+            backgroundColor: colors.cardBackground,
             borderTopWidth: 0,
             elevation: 0,
-        }
+          },
+        }),
       }}>
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Celebration',
+          title: 'Home',
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
         }}
       />
@@ -48,7 +55,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="explore"
         options={{
-          href: null, // Hide the original explore tab
+          href: null,
         }}
       />
     </Tabs>

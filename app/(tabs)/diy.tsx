@@ -4,7 +4,7 @@ import { GestureDetector, Gesture } from 'react-native-gesture-handler';
 import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
 import { IconSymbol, IconSymbolName } from '@/components/ui/icon-symbol';
 import { ThemedText } from '@/components/themed-text';
-import { useHolidayTheme } from '@/context/HolidayThemeContext';
+import { useThemeColor } from '@/hooks/use-theme-color';
 
 interface StickerData {
   id: string;
@@ -14,10 +14,12 @@ interface StickerData {
 
 const STICKER_OPTIONS: { icon: IconSymbolName; color: string }[] = [
   { icon: 'star.fill', color: '#FFD700' },
-  { icon: 'heart.fill', color: '#FF0000' },
-  { icon: 'bell.fill', color: '#FFA500' },
-  { icon: 'gift.fill', color: '#32CD32' },
-  { icon: 'moon.fill', color: '#C0C0C0' },
+  { icon: 'heart.fill', color: '#FF3B30' },
+  { icon: 'bell.fill', color: '#FF9500' },
+  { icon: 'gift.fill', color: '#34C759' },
+  { icon: 'moon.fill', color: '#AF52DE' },
+  { icon: 'snowflake', color: '#5AC8FA' },
+  { icon: 'flame.fill', color: '#FF9500' },
 ];
 
 const DraggableSticker = ({ icon, color }: { icon: IconSymbolName; color: string }) => {
@@ -64,7 +66,9 @@ const DraggableSticker = ({ icon, color }: { icon: IconSymbolName; color: string
 };
 
 export default function DIYScreen() {
-  const { themeColors } = useHolidayTheme();
+  const backgroundColor = useThemeColor({}, 'background');
+  const cardBackground = useThemeColor({}, 'cardBackground');
+  
   const [stickers, setStickers] = useState<StickerData[]>([]);
 
   const addSticker = (icon: IconSymbolName, color: string) => {
@@ -72,30 +76,31 @@ export default function DIYScreen() {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: themeColors.background }]}>
+    <View style={[styles.container, { backgroundColor }]}>
       <View style={styles.header}>
-        <ThemedText type="title" style={{ color: themeColors.text }}>Decorate</ThemedText>
-        <ThemedText style={{ color: themeColors.text }}>Create your festive scene</ThemedText>
+        <ThemedText type="title">Decorate</ThemedText>
+        <ThemedText style={{ color: '#8E8E93', marginTop: 4 }}>Create your festive scene</ThemedText>
       </View>
 
-      <View style={styles.canvas}>
-        <View style={[styles.treePlaceholder, { borderColor: themeColors.text }]}>
-             <IconSymbol name="house.fill" size={100} color={themeColors.secondary} style={{opacity: 0.5}} />
+      <View style={[styles.canvas, { backgroundColor: cardBackground }]}>
+        <View style={styles.placeholderContainer}>
+             <IconSymbol name="house.fill" size={80} color="#E5E5EA" />
+             <ThemedText style={{ color: '#C7C7CC', marginTop: 10 }}>Drag stickers here</ThemedText>
         </View>
         {stickers.map((s) => (
           <DraggableSticker key={s.id} icon={s.icon} color={s.color} />
         ))}
       </View>
 
-      <View style={styles.palette}>
-        <ThemedText style={{ color: themeColors.text, marginBottom: 10 }}>Pick a sticker:</ThemedText>
+      <View style={[styles.palette, { backgroundColor: cardBackground }]}>
         <FlatList
           data={STICKER_OPTIONS}
           horizontal
           showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ alignItems: 'center', paddingHorizontal: 10 }}
           renderItem={({ item }) => (
             <TouchableOpacity onPress={() => addSticker(item.icon, item.color)} style={styles.paletteItem}>
-              <IconSymbol name={item.icon} size={40} color={item.color} />
+              <IconSymbol name={item.icon} size={32} color={item.color} />
             </TouchableOpacity>
           )}
           keyExtractor={(item) => item.icon}
@@ -110,44 +115,50 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    paddingTop: 60,
+    paddingTop: 80,
     paddingHorizontal: 20,
-    paddingBottom: 10,
+    paddingBottom: 20,
   },
   canvas: {
     flex: 1,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    margin: 20,
-    borderRadius: 20,
-    overflow: 'hidden', // Keep stickers inside visually? actually overflow visible is better for dragging out
+    marginHorizontal: 20,
+    marginBottom: 20,
+    borderRadius: 24,
+    overflow: 'hidden',
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.2)',
-    borderStyle: 'dashed'
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 2,
   },
-  treePlaceholder: {
-      position: 'absolute',
-      justifyContent: 'center',
-      alignItems: 'center',
+  placeholderContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   palette: {
-    height: 120,
-    backgroundColor: 'rgba(0,0,0,0.2)',
-    padding: 20,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    height: 100,
+    paddingBottom: 20, // Bottom safe area compensation if needed, usually handled by SafeAreaView but here manually slightly
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 5,
+    justifyContent: 'center',
   },
   paletteItem: {
-    width: 60,
-    height: 60,
-    backgroundColor: 'white',
-    borderRadius: 30,
+    width: 56,
+    height: 56,
+    backgroundColor: '#F2F2F7', // Use grouped background for contrast against card background
+    borderRadius: 28,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 15,
+    marginRight: 12,
   },
   sticker: {
-    position: 'absolute', // Initial position
+    position: 'absolute',
   },
 });
