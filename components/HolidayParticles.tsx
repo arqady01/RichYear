@@ -1,7 +1,7 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect } from 'react';
 import { Dimensions, View, StyleSheet } from 'react-native';
-import { Canvas, Circle, Group, BlurMask } from '@shopify/react-native-skia';
-import { useSharedValue, withRepeat, withTiming, Easing, useDerivedValue, cancelAnimation } from 'react-native-reanimated';
+import { Canvas, Circle, Group } from '@shopify/react-native-skia';
+import { useSharedValue, withRepeat, withTiming, Easing, cancelAnimation } from 'react-native-reanimated';
 import { useHolidayTheme } from '@/context/HolidayThemeContext';
 
 const { width, height } = Dimensions.get('window');
@@ -43,11 +43,14 @@ const Particle = ({ index, type }: { index: number; type: 'snow' | 'lantern' }) 
       );
     }
     
+    // x and y are shared values, they are stable references so adding them to dep array is fine.
+    // However, eslint might complain about missing deps if I don't include them.
+    // Cancel animation on unmount.
     return () => {
       cancelAnimation(y);
       cancelAnimation(x);
     };
-  }, [type]);
+  }, [type, x, y]); // Added x, y
 
   const color = type === 'snow' ? 'white' : (index % 2 === 0 ? '#FFD700' : '#FF0000'); // Gold or Red
 
@@ -56,9 +59,6 @@ const Particle = ({ index, type }: { index: number; type: 'snow' | 'lantern' }) 
 
 export const HolidayParticles = () => {
   const { holiday } = useHolidayTheme();
-  
-  // Reset particles when holiday changes effectively by remounting via key or just logic? 
-  // Remounting is easier to reset positions.
   
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="none">

@@ -5,7 +5,7 @@ import { useThemeColor } from '@/hooks/use-theme-color';
 export type ThemedTextProps = TextProps & {
   lightColor?: string;
   darkColor?: string;
-  type?: 'default' | 'title' | 'defaultSemiBold' | 'subtitle' | 'link';
+  type?: 'default' | 'title' | 'defaultSemiBold' | 'subtitle' | 'link' | 'caption' | 'callout';
 };
 
 export function ThemedText({
@@ -16,6 +16,7 @@ export function ThemedText({
   ...rest
 }: ThemedTextProps) {
   const color = useThemeColor({ light: lightColor, dark: darkColor }, 'text');
+  const linkColor = useThemeColor({ light: lightColor, dark: darkColor }, 'tint');
 
   return (
     <Text
@@ -25,7 +26,9 @@ export function ThemedText({
         type === 'title' ? styles.title : undefined,
         type === 'defaultSemiBold' ? styles.defaultSemiBold : undefined,
         type === 'subtitle' ? styles.subtitle : undefined,
-        type === 'link' ? styles.link : undefined,
+        type === 'link' ? { ...styles.link, color: linkColor } : undefined,
+        type === 'caption' ? styles.caption : undefined,
+        type === 'callout' ? styles.callout : undefined,
         style,
       ]}
       {...rest}
@@ -35,26 +38,41 @@ export function ThemedText({
 
 const styles = StyleSheet.create({
   default: {
-    fontSize: 16,
-    lineHeight: 24,
+    fontSize: 17,
+    lineHeight: 22,
+    letterSpacing: -0.41,
   },
   defaultSemiBold: {
-    fontSize: 16,
-    lineHeight: 24,
+    fontSize: 17,
+    lineHeight: 22,
     fontWeight: '600',
+    letterSpacing: -0.41,
   },
   title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    lineHeight: 32,
+    fontSize: 34,
+    fontWeight: '700',
+    lineHeight: 41,
+    letterSpacing: 0.37,
   },
   subtitle: {
     fontSize: 20,
-    fontWeight: 'bold',
+    fontWeight: '600',
+    lineHeight: 25,
+    letterSpacing: 0.38,
   },
   link: {
-    lineHeight: 30,
+    fontSize: 17,
+    lineHeight: 22,
+    letterSpacing: -0.41,
+  },
+  caption: {
+    fontSize: 12,
+    lineHeight: 16,
+    color: '#8E8E93',
+  },
+  callout: {
     fontSize: 16,
-    color: '#0a7ea4',
+    lineHeight: 21,
+    letterSpacing: -0.32,
   },
 });
