@@ -1,6 +1,4 @@
-import { StyleSheet, View, Pressable } from 'react-native';
-import Animated, { useAnimatedStyle, withSpring, useSharedValue, withSequence } from 'react-native-reanimated';
-import * as Haptics from 'expo-haptics';
+import { StyleSheet, View } from 'react-native';
 import { useEffect, useState, useCallback } from 'react';
 
 import { HelloWave } from '@/components/hello-wave';
@@ -9,7 +7,6 @@ import { ThemedText } from '@/components/themed-text';
 import { useHolidayTheme } from '@/context/HolidayThemeContext';
 import { HolidayParticles } from '@/components/HolidayParticles';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Colors } from '@/constants/theme';
 import { useThemeColor } from '@/hooks/use-theme-color';
 
 const Countdown = ({ targetDate }: { targetDate: Date }) => {
@@ -86,45 +83,15 @@ const Card = ({ children, style }: { children: React.ReactNode, style?: any }) =
 }
 
 export default function HomeScreen() {
-  const { holiday, toggleHoliday } = useHolidayTheme();
-  const theme = useThemeColor({}, 'background'); // hack to just use theme hook if needed, but actually I need to access Colors for explicit colors
-  // Wait, I need Colors for specific logic?
-  // In previous code: const colors = Colors[theme]; 
-  // But theme was from useColorScheme.
-  
-  // I will use useThemeColor for dynamic values, or just Colors.light/dark if I need specific palette access.
-  // Actually I only used `colors.orange`, `colors.grey3`, `colors.blue` etc.
-  // I should probably use `useThemeColor` to get these if I mapped them, or just hardcode/use Colors with useColorScheme.
-  
-  // Let's bring back useColorScheme correctly if I need to access Colors[scheme]
-  // But strictly speaking, I should use useThemeColor or similar.
-  // However, for simplicity and fixing errors, I'll just use mapped colors or hardcoded hexes from my Palette if I don't want to overcomplicate.
-  
-  // But to be clean:
-  const colors = Colors.light; // Just for the palette references like orange/blue which are usually constant or semantic.
-  // Actually, my Colors object has light/dark.
-  // I'll use semantic colors.
+  const { holiday } = useHolidayTheme();
   
   const orange = '#FF9500';
   const grey3 = '#C7C7CC';
-  const blue = '#007AFF';
 
   const currentYear = new Date().getFullYear();
   const targetDate = holiday === 'christmas' 
     ? new Date(currentYear, 11, 25) 
     : new Date(currentYear + 1, 0, 29); 
-
-  const scale = useSharedValue(1);
-
-  const handlePress = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    scale.value = withSequence(withSpring(1.05), withSpring(1));
-    toggleHoliday();
-  };
-  
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-  }));
 
   return (
     <View style={{ flex: 1 }}>
@@ -166,18 +133,6 @@ export default function HomeScreen() {
           </View>
         </Card>
 
-        <Pressable onPress={handlePress} style={styles.switchButton}>
-            <Animated.View style={[
-                styles.switchContent, 
-                animatedStyle, 
-                { backgroundColor: blue }
-            ]}>
-                <ThemedText style={{ color: 'white', fontWeight: '600', fontSize: 17 }}>
-                    Switch Theme
-                </ThemedText>
-            </Animated.View>
-        </Pressable>
-
       </ParallaxScrollView>
     </View>
   );
@@ -217,15 +172,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 8,
     elevation: 2,
-  },
-  switchButton: {
-    marginTop: 10,
-    alignItems: 'center',
-  },
-  switchContent: {
-    paddingHorizontal: 32,
-    paddingVertical: 14,
-    borderRadius: 40,
   },
   iconContainer: {
     width: 50,
