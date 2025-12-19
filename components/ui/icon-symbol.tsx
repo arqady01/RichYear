@@ -33,6 +33,9 @@ const MAPPING = {
   'arrow.counterclockwise': 'refresh',
   'trash.fill': 'delete',
   'xmark.circle.fill': 'cancel',
+  'info.circle.fill': 'info',
+  'doc.text.fill': 'description',
+  'clock.fill': 'schedule',
 } as const;
 
 export type IconSymbolName = keyof typeof MAPPING;

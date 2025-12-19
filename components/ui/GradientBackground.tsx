@@ -33,8 +33,8 @@ export const GradientBackground = () => {
     });
 
     return (
-        <View style={StyleSheet.absoluteFill}>
-            <Canvas style={{ flex: 1 }}>
+        <View style={[StyleSheet.absoluteFill, { zIndex: -1 }]} pointerEvents="none">
+            <Canvas style={{ flex: 1 }} pointerEvents="none">
                 <Rect x={0} y={0} width={width} height={height}>
                     <LinearGradient
                         start={startVec}

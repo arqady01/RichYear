@@ -1,10 +1,9 @@
 import { GradientBackground } from '@/components/ui/GradientBackground';
-import { IconSymbol } from '@/components/ui/icon-symbol';
+import { IconSymbol, IconSymbolName } from '@/components/ui/icon-symbol';
 import { useHolidayTheme } from '@/context/HolidayThemeContext';
 import * as Haptics from 'expo-haptics';
 import React from 'react';
-import { StyleSheet, Switch } from 'react-native';
-import { Group, H2, ScrollView, Text, XStack, YStack } from 'tamagui';
+import { Platform, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 
 const SettingItem = ({
   icon,
@@ -15,7 +14,7 @@ const SettingItem = ({
   isSwitch,
   isLast
 }: {
-  icon: string,
+  icon: IconSymbolName,
   color: string,
   label: string,
   value?: string | boolean,
@@ -25,95 +24,160 @@ const SettingItem = ({
 }) => {
   const { themeColors } = useHolidayTheme();
   return (
-    <XStack 
-      ai="center" 
-      jc="space-between" 
-      px="$4" 
-      py="$3"
-      backgroundColor="rgba(255,255,255,0.8)"
-      borderBottomWidth={isLast ? 0 : 1}
-      borderBottomColor="rgba(0,0,0,0.05)"
-    >
-      <XStack ai="center" gap="$3" height={28}>
+    <View style={[
+      styles.settingItem,
+      !isLast && styles.settingItemBorder
+    ]}>
+      <View style={styles.settingLeft}>
         <IconSymbol name={icon} size={22} color={color} />
-        <Text fontSize={16} fontWeight="600" color={themeColors.text}>{label}</Text>
-      </XStack>
+        <Text style={[styles.labelText, { color: themeColors.text }]}>{label}</Text>
+      </View>
       {isSwitch ? (
-        <XStack ai="center" height={28}>
-          <Switch
-            value={value as boolean}
-            onValueChange={onToggle}
-            trackColor={{ false: '#E9E9EA', true: themeColors.primary }}
-            thumbColor="#FFF"
-            style={{ transform: [{ scaleX: 0.9 }, { scaleY: 0.9 }] }}
-          />
-        </XStack>
+        <Switch
+          value={value as boolean}
+          onValueChange={onToggle}
+          trackColor={{ false: '#E9E9EA', true: themeColors.primary }}
+          thumbColor="#FFF"
+        />
       ) : (
-        <XStack ai="center" gap="$2" height={28}>
-          <Text fontSize={16} color="$gray10">{value}</Text>
-          <IconSymbol name="chevron.right" size={16} color="$gray8" />
-        </XStack>
+        <View style={styles.settingRight}>
+          <Text style={styles.valueText}>{value}</Text>
+          <IconSymbol name="chevron.right" size={16} color="#8E8E93" />
+        </View>
       )}
-    </XStack>
+    </View>
   )
 }
 
 export default function SettingsScreen() {
   const { holiday, toggleHoliday, themeColors } = useHolidayTheme();
 
-  const handleToggle = (val: boolean) => {
+  const handleToggle = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     toggleHoliday();
   };
 
   return (
-    <YStack f={1}>
+    <View style={styles.container}>
       <GradientBackground />
-      <ScrollView contentContainerStyle={{ padding: 20, paddingTop: 60 }}>
-        <H2 color={themeColors.primary} fontWeight="900" mb="$6">Settings</H2>
+      <ScrollView 
+        style={[styles.scrollView, { zIndex: 1 }]}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
+        <Text style={[styles.title, { color: themeColors.primary }]}>Settings</Text>
 
-        <YStack gap="$4">
-          {/* Preferences Section */}
-          <YStack>
-            <Text ml="$3" mb="$2" fontSize={13} color={themeColors.secondary} fontWeight="700" textTransform="uppercase">Preferences</Text>
-            <Group orientation="vertical" borderRadius="$4" overflow="hidden">
-              <SettingItem
-                icon={holiday === 'christmas' ? 'snowflake' : 'flame.fill'}
-                color={themeColors.primary}
-                label="Festival Theme"
-                value={holiday === 'newyear'}
-                isSwitch
-                onToggle={handleToggle}
-                isLast
-              />
-            </Group>
-          </YStack>
+        {/* Preferences Section */}
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: themeColors.secondary }]}>
+            PREFERENCES
+          </Text>
+          <View style={styles.group}>
+            <SettingItem
+              icon={holiday === 'christmas' ? 'snowflake' : 'flame.fill'}
+              color={themeColors.primary}
+              label="Festival Theme"
+              value={holiday === 'newyear'}
+              isSwitch
+              onToggle={handleToggle}
+              isLast
+            />
+          </View>
+        </View>
 
-          {/* About Section */}
-          <YStack>
-            <Text ml="$3" mb="$2" fontSize={13} color={themeColors.secondary} fontWeight="700" textTransform="uppercase">About</Text>
-            <Group orientation="vertical" borderRadius="$4" overflow="hidden">
-              <SettingItem
-                icon="info.circle.fill"
-                color="#007AFF"
-                label="Version"
-                value="1.0.0"
-              />
-              <SettingItem
-                icon="doc.text.fill"
-                color="#8E8E93"
-                label="Terms of Service"
-                value=""
-                isLast
-              />
-            </Group>
-          </YStack>
+        {/* About Section */}
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: themeColors.secondary }]}>
+            ABOUT
+          </Text>
+          <View style={styles.group}>
+            <SettingItem
+              icon="star.fill"
+              color="#007AFF"
+              label="Version"
+              value="1.0.0"
+            />
+            <SettingItem
+              icon="envelope.fill"
+              color="#8E8E93"
+              label="Terms of Service"
+              value=""
+              isLast
+            />
+          </View>
+        </View>
 
-          <Text textAlign="center" mt="$8" color="$gray9" fontSize={12}>Made with ❤️ for the Holidays</Text>
-        </YStack>
+        <Text style={styles.footer}>Made with ❤️ for the Holidays</Text>
       </ScrollView>
-    </YStack>
+    </View>
   );
 }
 
-const styles = StyleSheet.create({});
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  content: {
+    paddingTop: Platform.OS === 'ios' ? 60 : 40,
+    paddingHorizontal: 20,
+    paddingBottom: 100,
+  },
+  title: {
+    fontSize: 34,
+    fontWeight: '900',
+    marginBottom: 24,
+  },
+  section: {
+    marginBottom: 24,
+  },
+  sectionTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    marginLeft: 12,
+    marginBottom: 8,
+  },
+  group: {
+    backgroundColor: 'rgba(255,255,255,0.8)',
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  settingItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    minHeight: 48,
+  },
+  settingItemBorder: {
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: 'rgba(0,0,0,0.1)',
+  },
+  settingLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  settingRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  labelText: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  valueText: {
+    fontSize: 16,
+    color: '#8E8E93',
+  },
+  footer: {
+    textAlign: 'center',
+    marginTop: 32,
+    color: '#8E8E93',
+    fontSize: 12,
+  },
+});
