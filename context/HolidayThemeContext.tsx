@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, ReactNode, useContext, useState } from 'react';
 
 export type HolidayType = 'christmas' | 'newyear';
 
@@ -17,21 +17,21 @@ interface HolidayThemeContextType {
 const HolidayThemeContext = createContext<HolidayThemeContextType | undefined>(undefined);
 
 const ChristmasColors = {
-  primary: '#D42426', // Santa Red
-  secondary: '#165B33', // Pine Green
-  background: '#F8B229', // Gold-ish/Warm White (Actually let's go darker for immersion or stick to simple) -> Let's try a dark rich red/green mix or just specific colors. 
-  // Let's stick to a safe palette that works in light/dark mode, but specific to the holiday.
-  // Actually, let's just define the key brand colors.
-  text: '#FFFFFF',
-  accent: '#BB2528',
+  primary: '#D42426', // Classic Red
+  secondary: '#165B33', // Deep Green
+  background: '#FDF6F0', // Soft warm cream (Light Mode) or Dark Green (Dark Mode) - handled via hook usually, but here is static
+  text: '#1C1C1E',
+  accent: '#D4AF37', // Gold
+  cardBackground: '#FFFFFF',
 };
 
 const NewYearColors = {
-  primary: '#FF0000', // Bright Red
+  primary: '#E60012', // Vibrant Red
   secondary: '#FFD700', // Gold
-  background: '#8B0000', // Dark Red
-  text: '#FFD700', // Gold Text
+  background: '#FFF8F0', // Very light cream
+  text: '#8B0000', // Deep red text
   accent: '#FFA500',
+  cardBackground: '#FFFFFF',
 };
 
 export const HolidayThemeProvider = ({ children }: { children: ReactNode }) => {

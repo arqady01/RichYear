@@ -1,18 +1,19 @@
-import { StyleSheet, View } from 'react-native';
-import { useEffect, useState, useCallback } from 'react';
+import * as Haptics from 'expo-haptics';
+import { useCallback, useEffect, useState } from 'react';
+import { Dimensions, StyleSheet, View } from 'react-native';
+import { H1, H2, H4, Paragraph, Card as TamaguiCard, Text, XStack, YStack } from 'tamagui';
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { useHolidayTheme } from '@/context/HolidayThemeContext';
 import { HolidayParticles } from '@/components/HolidayParticles';
+import ParallaxScrollView from '@/components/parallax-scroll-view';
+import { GradientBackground } from '@/components/ui/GradientBackground';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { useThemeColor } from '@/hooks/use-theme-color';
+import { useHolidayTheme } from '@/context/HolidayThemeContext';
+
+const { width } = Dimensions.get('window');
 
 const Countdown = ({ targetDate }: { targetDate: Date }) => {
   const [timeLeft, setTimeLeft] = useState<{ days: number; hours: number; minutes: number; seconds: number } | {}>({});
-  const textColor = useThemeColor({}, 'text');
-  const secondaryTextColor = useThemeColor({}, 'secondaryText');
+  const { themeColors } = useHolidayTheme();
 
   const calculateTimeLeft = useCallback(() => {
     const difference = +targetDate - +new Date();
@@ -41,143 +42,161 @@ const Countdown = ({ targetDate }: { targetDate: Date }) => {
   const time = timeLeft as { days: number; hours: number; minutes: number; seconds: number };
   const hasTime = Object.keys(timeLeft).length > 0;
 
+  if (!hasTime) {
+    return (
+      <YStack ai="center" jc="center" p="$4">
+        <H2 color={themeColors.primary} fontFamily="Chewy">The Day is Here!</H2>
+      </YStack>
+    )
+  }
+
   return (
-    <View style={styles.countdownContainer}>
-      {hasTime ? (
-        <View style={styles.timerRow}>
-           <TimeBox value={time.days} label="DAYS" color={textColor} labelColor={secondaryTextColor} />
-           <Separator color={secondaryTextColor} />
-           <TimeBox value={time.hours} label="HRS" color={textColor} labelColor={secondaryTextColor} />
-           <Separator color={secondaryTextColor} />
-           <TimeBox value={time.minutes} label="MIN" color={textColor} labelColor={secondaryTextColor} />
-           <Separator color={secondaryTextColor} />
-           <TimeBox value={time.seconds} label="SEC" color={textColor} labelColor={secondaryTextColor} />
-        </View>
-      ) : (
-        <ThemedText type="title">It&apos;s Here!</ThemedText>
-      )}
-    </View>
+    <XStack jc="space-between" w="100%" px="$2" py="$4">
+      <TimeBlock value={time.days} label="DAYS" />
+      <Separator />
+      <TimeBlock value={time.hours} label="HRS" />
+      <Separator />
+      <TimeBlock value={time.minutes} label="MIN" />
+      <Separator />
+      <TimeBlock value={time.seconds} label="SEC" />
+    </XStack>
   );
 };
 
-const TimeBox = ({ value, label, color, labelColor }: { value: number; label: string, color: string, labelColor: string }) => (
-  <View style={styles.timeBox}>
-    <ThemedText type="title" style={{ fontSize: 28, fontVariant: ['tabular-nums'], color }}>
-      {value.toString().padStart(2, '0')}
-    </ThemedText>
-    <ThemedText style={{ fontSize: 11, fontWeight: '600', color: labelColor, marginTop: 4 }}>{label}</ThemedText>
-  </View>
-);
-
-const Separator = ({ color }: { color: string }) => (
-  <ThemedText style={{ fontSize: 24, color, marginBottom: 18 }}>:</ThemedText>
-);
-
-const Card = ({ children, style }: { children: React.ReactNode, style?: any }) => {
-  const backgroundColor = useThemeColor({}, 'cardBackground');
+const TimeBlock = ({ value, label }: { value: number; label: string }) => {
+  const { themeColors } = useHolidayTheme();
   return (
-    <View style={[styles.card, { backgroundColor }, style]}>
+    <YStack ai="center">
+      <H2 color={themeColors.primary} fontWeight="800" fontSize={36}>{value.toString().padStart(2, '0')}</H2>
+      <Text color={themeColors.secondary} fontSize={10} fontWeight="600" letterSpacing={1}>{label}</Text>
+    </YStack>
+  )
+}
+
+const Separator = () => {
+  const { themeColors } = useHolidayTheme();
+  return <Text color={themeColors.primary} fontSize={28} fontWeight="800" mt={-4} opacity={0.5}>:</Text>;
+}
+
+
+const PremiumCard = ({ children, onPress }: { children: React.ReactNode, onPress?: () => void }) => {
+  return (
+    <TamaguiCard
+      elevate
+      size="$4"
+      bordered
+      borderColor="$colorTransparent"
+      animation="bouncy"
+      scale={0.9}
+      hoverStyle={{ scale: 0.925 }}
+      pressStyle={{ scale: 0.975 }}
+      onPress={onPress}
+      backgroundColor="white" // Ensure opaque background for clear reading
+      borderRadius="$6"
+      shadowColor="$shadowColor"
+      shadowRadius={10}
+      shadowOffset={{ width: 0, height: 4 }}
+      shadowOpacity={0.1}
+      marginBottom="$4"
+      padding="$5"
+    >
       {children}
-    </View>
-  );
+    </TamaguiCard>
+  )
 }
 
 export default function HomeScreen() {
-  const { holiday } = useHolidayTheme();
-  
-  const orange = '#FF9500';
-  const grey3 = '#C7C7CC';
+  const { holiday, themeColors } = useHolidayTheme();
 
   const currentYear = new Date().getFullYear();
-  const targetDate = holiday === 'christmas' 
-    ? new Date(currentYear, 11, 25) 
-    : new Date(currentYear + 1, 0, 29); 
+  const targetDate = holiday === 'christmas'
+    ? new Date(currentYear, 11, 25)
+    : new Date(currentYear + 1, 0, 29);
+
+  const handleDailySurprise = () => {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    // Navigate or show modal
+  };
 
   return (
     <View style={{ flex: 1 }}>
+      <GradientBackground />
       <HolidayParticles />
+
       <ParallaxScrollView
-        headerBackgroundColor={{ light: '#A0B0C0', dark: '#1C1C1E' }}
+        headerBackgroundColor={{ light: 'transparent', dark: 'transparent' }}
         headerImage={
-          <View style={styles.headerImageContainer}>
-             <IconSymbol
-                size={120}
-                name={holiday === 'christmas' ? 'snowflake' : 'flame.fill'}
-                color="white"
-              />
-          </View>
+          <YStack f={1} jc="center" ai="center" pb="$5">
+            <IconSymbol
+              size={100}
+              name={holiday === 'christmas' ? 'snowflake' : 'flame.fill'}
+              color="white"
+              style={{ shadowColor: themeColors.primary, shadowRadius: 20, shadowOpacity: 0.5 }}
+            />
+          </YStack>
         }>
-        
-        <View style={styles.headerTitleContainer}>
-          <ThemedText type="title">
-            {holiday === 'christmas' ? 'Christmas' : 'Lunar New Year'}
-          </ThemedText>
-          <HelloWave />
-        </View>
 
-        <Card>
-           <ThemedText type="defaultSemiBold" style={{ marginBottom: 16 }}>Time Remaining</ThemedText>
-           <Countdown targetDate={targetDate} />
-        </Card>
+        <YStack px="$4" gap="$5" pb="$10">
+          <YStack ai="center" mb="$2">
+            <H1 color={themeColors.primary} fontWeight="900" textAlign="center" letterSpacing={-1}>
+              {holiday === 'christmas' ? 'Merry Christmas' : 'Happy New Year'}
+            </H1>
+            <Paragraph color={themeColors.secondary} fontSize={16} fontWeight="500">
+              {holiday === 'christmas' ? 'Magic is in the air' : 'Prosperity awaits'}
+            </Paragraph>
+          </YStack>
 
-        <Card>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
-             <View style={[styles.iconContainer, { backgroundColor: orange }]}>
+          <PremiumCard>
+            <YStack gap="$2">
+              <XStack jc="space-between" ai="center">
+                <H4 color={themeColors.secondary}>Countdown</H4>
+                <IconSymbol name="clock.fill" size={20} color={themeColors.secondary} />
+              </XStack>
+              <Countdown targetDate={targetDate} />
+            </YStack>
+          </PremiumCard>
+
+          <PremiumCard onPress={handleDailySurprise}>
+            <XStack gap="$4" ai="center">
+              <View style={{
+                width: 60, height: 60, borderRadius: 18,
+                backgroundColor: themeColors.primary,
+                justifyContent: 'center', alignItems: 'center',
+                shadowColor: themeColors.primary, shadowRadius: 8, shadowOpacity: 0.3
+              }}>
                 <IconSymbol name="gift.fill" size={32} color="white" />
-             </View>
-             <View style={{ flex: 1 }}>
-                <ThemedText type="defaultSemiBold">Daily Surprise</ThemedText>
-                <ThemedText type="caption" style={{ marginTop: 2 }}>Tap to reveal your blessing</ThemedText>
-             </View>
-             <IconSymbol name="chevron.right" size={20} color={grey3} />
-          </View>
-        </Card>
+              </View>
+              <YStack f={1}>
+                <H4 color={themeColors.text}>Daily Surprise</H4>
+                <Paragraph color="$gray10" fontSize={13}>Tap to reveal your blessing</Paragraph>
+              </YStack>
+              <IconSymbol name="chevron.right" size={20} color="$gray8" />
+            </XStack>
+          </PremiumCard>
+
+          {/* Placeholder for more content to make it scrollable/full */}
+          <PremiumCard>
+            <XStack gap="$4" ai="center">
+              <View style={{
+                width: 60, height: 60, borderRadius: 18,
+                backgroundColor: themeColors.accent,
+                justifyContent: 'center', alignItems: 'center',
+              }}>
+                <IconSymbol name="star.fill" size={32} color="white" />
+              </View>
+              <YStack f={1}>
+                <H4 color={themeColors.text}>Wishlist</H4>
+                <Paragraph color="$gray10" fontSize={13}>Manage your holiday wishes</Paragraph>
+              </YStack>
+              <IconSymbol name="chevron.right" size={20} color="$gray8" />
+            </XStack>
+          </PremiumCard>
+
+        </YStack>
 
       </ParallaxScrollView>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  headerImageContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingBottom: 20,
-  },
-  headerTitleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 8,
-  },
-  countdownContainer: {
-    alignItems: 'center',
-    paddingVertical: 8,
-  },
-  timerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  timeBox: {
-    alignItems: 'center',
-    minWidth: 50,
-  },
-  card: {
-    borderRadius: 16,
-    padding: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  iconContainer: {
-    width: 50,
-    height: 50,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-});
+const styles = StyleSheet.create({});

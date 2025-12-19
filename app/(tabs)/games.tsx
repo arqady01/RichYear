@@ -1,6 +1,6 @@
-import { StyleSheet, View, ScrollView, Pressable, Platform, useWindowDimensions } from 'react-native';
-import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
+import { router } from 'expo-router';
+import { Platform, Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { IconSymbol, IconSymbolName } from '@/components/ui/icon-symbol';
@@ -85,6 +85,8 @@ export default function GamesScreen() {
                    // Navigate to specific game screen
                    if (game.id === 'kinship') {
                      router.push('/games/kinship');
+                   } else if (game.id === 'scoreboard') {
+                     router.push('/games/scoreboard');
                    }
                 }}
               >
